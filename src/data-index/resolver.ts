@@ -4,6 +4,7 @@ import { FullIndex, PathFilters } from "data-index/index";
 import { Result } from "api/result";
 import { Source } from "./source";
 import { DataObject, Link, Literal } from "../data-model/value";
+import { excludePaths, excludeExtensions } from '../settings';
 
 /** A data row which has an ID and associated data (like page link / page data). */
 export type Datarow<T> = { id: Literal; data: T };
@@ -83,9 +84,19 @@ export function matchingSourcePaths(
             return matchingSourcePaths(source.child, index, originFile).map(child => {
                 // TODO: This is obviously very inefficient. Can be improved by complicating the
                 // return type of this function & optimizing 'and' / 'or'.
-                let allFiles = new Set<string>(index.vault.getMarkdownFiles().map(f => f.path));
-                child.forEach(f => allFiles.delete(f));
-                return allFiles;
+                const filteredFiles = new Set<string>(
+                    index.vault.getMarkdownFiles()
+                        .map(f => f.path)
+                        .filter(path => {
+                            const isExcludedPath = excludePaths.some(p => path.includes(p));
+                            const hasExcludedExtension = excludeExtensions.some(ext =>
+                                path.toLowerCase().endsWith(ext.toLowerCase())
+                            );
+                            return !(isExcludedPath || hasExcludedExtension);
+                        })
+                );
+                child.forEach(f => filteredFiles.delete(f));
+                return filteredFiles;
             });
     }
 }

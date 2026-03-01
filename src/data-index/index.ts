@@ -8,6 +8,7 @@ import { DataObject } from "data-model/value";
 import { DateTime } from "luxon";
 import { App, Component, MetadataCache, TAbstractFile, TFile, TFolder, Vault } from "obsidian";
 import { getParentFolder, setsEqual } from "util/normalize";
+import { excludePaths, excludeExtensions } from '../settings';
 
 /** Aggregate index which has several sub-indices and will initialize all of them. */
 export class FullIndex extends Component {
@@ -116,14 +117,28 @@ export class FullIndex extends Component {
         );
 
         // Asynchronously initialize actual content in the background.
-        this._initialize(this.vault.getMarkdownFiles());
+        this._initialize(
+            this.vault.getMarkdownFiles().filter(file => {
+                const isExcludedPath = excludePaths.some(p => file.path.includes(p));
+                const hasExcludedExtension = excludeExtensions.some(ext =>
+                    file.name.toLowerCase().endsWith(ext.toLowerCase())
+                );
+                return !(isExcludedPath || hasExcludedExtension);
+            })
+        );
     }
 
     /** Drops the local storage cache and re-indexes all files; this should generally be used if you expect cache issues. */
     public async reinitialize() {
         await this.persister.recreate();
 
-        const files = this.vault.getMarkdownFiles();
+        const files = this.vault.getMarkdownFiles().filter(file => {
+            const isExcludedPath = excludePaths.some(p => file.path.includes(p));
+            const hasExcludedExtension = excludeExtensions.some(ext =>
+                file.name.toLowerCase().endsWith(ext.toLowerCase())
+            );
+            return !(isExcludedPath || hasExcludedExtension);
+        });
         const start = Date.now();
         let promises = files.map(file => this.reload(file));
 

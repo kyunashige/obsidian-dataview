@@ -1,3 +1,10 @@
+export const excludePaths: string[] = [
+    "Cabinets/",
+];
+export const excludeExtensions: string[] = [
+    ".png",
+];
+
 ////////////////////
 // Query Settings //
 ////////////////////
